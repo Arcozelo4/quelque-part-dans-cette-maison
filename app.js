@@ -462,6 +462,13 @@ overlay.addEventListener(
 // PHOTO
 // ==========================================================
 
+// ==========================================================
+// PHOTO - REDIMENSIONNEMENT ET COMPRESSION
+// ==========================================================
+
+const PHOTO_MAX_DIMENSION = 1400;
+const PHOTO_TAILLE_CIBLE = 500 * 1024;
+
 choisirPhoto.addEventListener(
   "click",
   () => {
@@ -469,21 +476,279 @@ choisirPhoto.addEventListener(
   }
 );
 
+
+// ----------------------------------------------------------
+// CONVERTIR UN BLOB EN DATA URL
+// ----------------------------------------------------------
+
+function blobVersDataURL(blob) {
+
+  return new Promise(
+    (resolve, reject) => {
+
+      const lecteur =
+        new FileReader();
+
+      lecteur.onload =
+        () => {
+          resolve(
+            lecteur.result
+          );
+        };
+
+      lecteur.onerror =
+        () => {
+          reject(
+            lecteur.error
+          );
+        };
+
+      lecteur.readAsDataURL(
+        blob
+      );
+    }
+  );
+}
+
+
+// ----------------------------------------------------------
+// CRÉER UN BLOB JPEG À PARTIR DU CANVAS
+// ----------------------------------------------------------
+
+function canvasVersBlob(
+  canvas,
+  qualite
+) {
+
+  return new Promise(
+    (resolve, reject) => {
+
+      canvas.toBlob(
+        blob => {
+
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(
+              new Error(
+                "Impossible de compresser la photo."
+              )
+            );
+          }
+
+        },
+        "image/jpeg",
+        qualite
+      );
+    }
+  );
+}
+
+
+// ----------------------------------------------------------
+// CHARGER L'IMAGE
+// ----------------------------------------------------------
+
+function chargerImage(
+  fichier
+) {
+
+  return new Promise(
+    (resolve, reject) => {
+
+      const image =
+        new Image();
+
+      const url =
+        URL.createObjectURL(
+          fichier
+        );
+
+      image.onload =
+        () => {
+
+          URL.revokeObjectURL(
+            url
+          );
+
+          resolve(image);
+        };
+
+      image.onerror =
+        () => {
+
+          URL.revokeObjectURL(
+            url
+          );
+
+          reject(
+            new Error(
+              "Impossible de lire cette image."
+            )
+          );
+        };
+
+      image.src =
+        url;
+    }
+  );
+}
+
+
+// ----------------------------------------------------------
+// COMPRESSER LA PHOTO
+// ----------------------------------------------------------
+
+async function compresserPhoto(
+  fichier
+) {
+
+  const image =
+    await chargerImage(
+      fichier
+    );
+
+
+  let largeur =
+    image.naturalWidth;
+
+  let hauteur =
+    image.naturalHeight;
+
+
+  if (
+    largeur >
+      PHOTO_MAX_DIMENSION ||
+    hauteur >
+      PHOTO_MAX_DIMENSION
+  ) {
+
+    const ratio =
+      Math.min(
+        PHOTO_MAX_DIMENSION /
+          largeur,
+
+        PHOTO_MAX_DIMENSION /
+          hauteur
+      );
+
+
+    largeur =
+      Math.round(
+        largeur *
+        ratio
+      );
+
+    hauteur =
+      Math.round(
+        hauteur *
+        ratio
+      );
+  }
+
+
+  const canvas =
+    document.createElement(
+      "canvas"
+    );
+
+
+  canvas.width =
+    largeur;
+
+  canvas.height =
+    hauteur;
+
+
+  const contexte =
+    canvas.getContext(
+      "2d"
+    );
+
+
+  // Fond blanc pour les éventuelles images transparentes.
+  contexte.fillStyle =
+    "#FFFFFF";
+
+  contexte.fillRect(
+    0,
+    0,
+    largeur,
+    hauteur
+  );
+
+
+  contexte.drawImage(
+    image,
+    0,
+    0,
+    largeur,
+    hauteur
+  );
+
+
+  // Première compression.
+  let qualite =
+    0.82;
+
+
+  let blob =
+    await canvasVersBlob(
+      canvas,
+      qualite
+    );
+
+
+  // Si la photo reste trop lourde,
+  // on réduit progressivement la qualité.
+  while (
+    blob.size >
+      PHOTO_TAILLE_CIBLE &&
+    qualite >
+      0.52
+  ) {
+
+    qualite -=
+      0.08;
+
+
+    blob =
+      await canvasVersBlob(
+        canvas,
+        qualite
+      );
+  }
+
+
+  return blobVersDataURL(
+    blob
+  );
+}
+
+
+// ----------------------------------------------------------
+// PHOTO CHOISIE
+// ----------------------------------------------------------
+
 photoInput.addEventListener(
   "change",
-  () => {
+  async () => {
+
     const fichier =
       photoInput.files[0];
+
 
     if (!fichier) {
       return;
     }
+
 
     if (
       !fichier.type.startsWith(
         "image/"
       )
     ) {
+
       afficherToast(
         "Choisis une image."
       );
@@ -491,32 +756,88 @@ photoInput.addEventListener(
       return;
     }
 
-    const lecteur =
-      new FileReader();
 
-    lecteur.onload =
-      event => {
-        photoActuelle =
-          event.target.result;
+    choisirPhoto.disabled =
+      true;
 
-        apercuPhoto.innerHTML = `
-          <img
-            src="${photoActuelle}"
-            alt="Aperçu de l'objet"
-          >
-        `;
-      };
+    enregistrer.disabled =
+      true;
 
-    lecteur.onerror =
-      () => {
-        afficherToast(
-          "Impossible de lire cette photo."
+
+    const texteBouton =
+      choisirPhoto.innerHTML;
+
+
+    choisirPhoto.innerHTML = `
+      <span class="icone-photo">
+        ⏳
+      </span>
+
+      <span>
+        <strong>
+          Optimisation de la photo...
+        </strong>
+
+        <small>
+          Quelques secondes seulement
+        </small>
+      </span>
+    `;
+
+
+    try {
+
+      photoActuelle =
+        await compresserPhoto(
+          fichier
         );
-      };
 
-    lecteur.readAsDataURL(
-      fichier
-    );
+
+      apercuPhoto.innerHTML = `
+        <img
+          src="${photoActuelle}"
+          alt="Aperçu de l'objet"
+        >
+      `;
+
+
+      afficherToast(
+        "Photo optimisée."
+      );
+
+
+    } catch (erreur) {
+
+      console.error(
+        "Erreur photo :",
+        erreur
+      );
+
+
+      photoActuelle =
+        "";
+
+
+      photoInput.value =
+        "";
+
+
+      afficherToast(
+        "Impossible de traiter cette photo."
+      );
+
+
+    } finally {
+
+      choisirPhoto.disabled =
+        false;
+
+      enregistrer.disabled =
+        false;
+
+      choisirPhoto.innerHTML =
+        texteBouton;
+    }
   }
 );
 
