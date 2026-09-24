@@ -1,5 +1,5 @@
 const CACHE_NAME =
-  "quelque-part-maison-v3";
+  "quelque-part-maison-v4";
 
 const FICHIERS = [
   "./",
@@ -12,14 +12,21 @@ const FICHIERS = [
   "./icon-512.png"
 ];
 
+// ==========================================================
+// INSTALLATION
+// ==========================================================
+
 self.addEventListener(
   "install",
   event => {
     event.waitUntil(
       caches
         .open(CACHE_NAME)
-        .then(cache =>
-          cache.addAll(FICHIERS)
+        .then(
+          cache =>
+            cache.addAll(
+              FICHIERS
+            )
         )
     );
 
@@ -27,24 +34,32 @@ self.addEventListener(
   }
 );
 
+// ==========================================================
+// ACTIVATION
+// ==========================================================
+
 self.addEventListener(
   "activate",
   event => {
     event.waitUntil(
       caches
         .keys()
-        .then(noms =>
-          Promise.all(
-            noms
-              .filter(
-                nom =>
-                  nom !== CACHE_NAME
-              )
-              .map(
-                nom =>
-                  caches.delete(nom)
-              )
-          )
+        .then(
+          noms =>
+            Promise.all(
+              noms
+                .filter(
+                  nom =>
+                    nom !==
+                    CACHE_NAME
+                )
+                .map(
+                  nom =>
+                    caches.delete(
+                      nom
+                    )
+                )
+            )
         )
     );
 
@@ -52,51 +67,80 @@ self.addEventListener(
   }
 );
 
+// ==========================================================
+// REQUÊTES
+// ==========================================================
+
 self.addEventListener(
   "fetch",
   event => {
+    const requete =
+      event.request;
+
     if (
-      event.request.method !== "GET"
+      requete.method !==
+      "GET"
+    ) {
+      return;
+    }
+
+    const url =
+      new URL(
+        requete.url
+      );
+
+    if (
+      url.origin !==
+      self.location.origin
     ) {
       return;
     }
 
     event.respondWith(
-      caches
-        .match(event.request)
+      fetch(requete)
         .then(
-          reponseCache => {
-            if (reponseCache) {
-              return reponseCache;
-            }
+          reponse => {
+            const copie =
+              reponse.clone();
 
-            return fetch(
-              event.request
-            )
-              .then(
-                reponse => {
-                  const copie =
-                    reponse.clone();
-
-                  caches
-                    .open(CACHE_NAME)
-                    .then(
-                      cache =>
-                        cache.put(
-                          event.request,
-                          copie
-                        )
-                    );
-
-                  return reponse;
-                }
+            caches
+              .open(
+                CACHE_NAME
               )
-              .catch(
-                () =>
-                  caches.match(
-                    "./index.html"
+              .then(
+                cache =>
+                  cache.put(
+                    requete,
+                    copie
                   )
               );
+
+            return reponse;
+          }
+        )
+        .catch(
+          async () => {
+            const cache =
+              await caches.match(
+                requete
+              );
+
+            if (cache) {
+              return cache;
+            }
+
+            if (
+              requete.mode ===
+              "navigate"
+            ) {
+              return caches.match(
+                "./index.html"
+              );
+            }
+
+            throw new Error(
+              "Ressource indisponible"
+            );
           }
         )
     );
