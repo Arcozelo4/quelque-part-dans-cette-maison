@@ -8,9 +8,7 @@ let photoActuelle = "";
 let vueActuelle = "tous";
 
 let familles =
-  JSON.parse(
-    localStorage.getItem("famillesMaison")
-  ) || [
+  JSON.parse(localStorage.getItem("famillesMaison")) || [
     "Alimentation",
     "Bricolage",
     "Entretien",
@@ -18,195 +16,119 @@ let familles =
     "Papeterie"
   ];
 
-
 // ==========================================================
 // BASE DE DONNÉES
 // ==========================================================
 
 function ouvrirBaseDeDonnees() {
-
   return new Promise((resolve, reject) => {
+    const requete = indexedDB.open(DB_NAME, DB_VERSION);
 
-    const requete =
-      indexedDB.open(
-        DB_NAME,
-        DB_VERSION
-      );
+    requete.onupgradeneeded = event => {
+      const base = event.target.result;
 
+      if (!base.objectStoreNames.contains(STORE_OBJETS)) {
+        base.createObjectStore(STORE_OBJETS, {
+          keyPath: "id"
+        });
+      }
+    };
 
-    requete.onupgradeneeded =
-      event => {
+    requete.onsuccess = event => {
+      db = event.target.result;
+      resolve(db);
+    };
 
-        const base =
-          event.target.result;
-
-        if (
-          !base.objectStoreNames.contains(
-            STORE_OBJETS
-          )
-        ) {
-
-          base.createObjectStore(
-            STORE_OBJETS,
-            {
-              keyPath: "id"
-            }
-          );
-        }
-      };
-
-
-    requete.onsuccess =
-      event => {
-
-        db =
-          event.target.result;
-
-        resolve(db);
-      };
-
-
-    requete.onerror =
-      () => {
-
-        reject(
-          requete.error
-        );
-      };
+    requete.onerror = () => {
+      reject(requete.error);
+    };
   });
 }
-
 
 function recupererTousLesObjetsDB() {
-
   return new Promise((resolve, reject) => {
-
-    const transaction =
-      db.transaction(
-        STORE_OBJETS,
-        "readonly"
-      );
+    const transaction = db.transaction(
+      STORE_OBJETS,
+      "readonly"
+    );
 
     const magasin =
-      transaction.objectStore(
-        STORE_OBJETS
-      );
+      transaction.objectStore(STORE_OBJETS);
 
-    const requete =
-      magasin.getAll();
+    const requete = magasin.getAll();
 
+    requete.onsuccess = () => {
+      resolve(requete.result || []);
+    };
 
-    requete.onsuccess =
-      () => {
-
-        resolve(
-          requete.result || []
-        );
-      };
-
-
-    requete.onerror =
-      () => {
-
-        reject(
-          requete.error
-        );
-      };
+    requete.onerror = () => {
+      reject(requete.error);
+    };
   });
 }
-
 
 function enregistrerObjetDB(objet) {
-
   return new Promise((resolve, reject) => {
-
-    const transaction =
-      db.transaction(
-        STORE_OBJETS,
-        "readwrite"
-      );
+    const transaction = db.transaction(
+      STORE_OBJETS,
+      "readwrite"
+    );
 
     transaction
-      .objectStore(
-        STORE_OBJETS
-      )
+      .objectStore(STORE_OBJETS)
       .put(objet);
 
+    transaction.oncomplete = () => {
+      resolve();
+    };
 
-    transaction.oncomplete =
-      () => resolve();
-
-
-    transaction.onerror =
-      () =>
-        reject(
-          transaction.error
-        );
+    transaction.onerror = () => {
+      reject(transaction.error);
+    };
   });
 }
-
 
 function supprimerObjetDB(id) {
-
   return new Promise((resolve, reject) => {
-
-    const transaction =
-      db.transaction(
-        STORE_OBJETS,
-        "readwrite"
-      );
-
+    const transaction = db.transaction(
+      STORE_OBJETS,
+      "readwrite"
+    );
 
     transaction
-      .objectStore(
-        STORE_OBJETS
-      )
+      .objectStore(STORE_OBJETS)
       .delete(id);
 
+    transaction.oncomplete = () => {
+      resolve();
+    };
 
-    transaction.oncomplete =
-      () => resolve();
-
-
-    transaction.onerror =
-      () =>
-        reject(
-          transaction.error
-        );
+    transaction.onerror = () => {
+      reject(transaction.error);
+    };
   });
 }
-
 
 function viderBaseObjets() {
-
   return new Promise((resolve, reject) => {
-
-    const transaction =
-      db.transaction(
-        STORE_OBJETS,
-        "readwrite"
-      );
-
+    const transaction = db.transaction(
+      STORE_OBJETS,
+      "readwrite"
+    );
 
     transaction
-      .objectStore(
-        STORE_OBJETS
-      )
+      .objectStore(STORE_OBJETS)
       .clear();
 
+    transaction.oncomplete = () => {
+      resolve();
+    };
 
-    transaction.oncomplete =
-      () => resolve();
-
-
-    transaction.onerror =
-      () =>
-        reject(
-          transaction.error
-        );
+    transaction.onerror = () => {
+      reject(transaction.error);
+    };
   });
 }
-
 
 // ==========================================================
 // ÉLÉMENTS HTML
@@ -313,6 +235,9 @@ const toast =
 const raccourcis =
   document.querySelectorAll(".raccourci");
 
+// Ces éléments peuvent ne pas exister.
+// Ils ne doivent donc jamais bloquer l'application.
+
 const exporterInventaire =
   document.getElementById(
     "exporterInventaire"
@@ -328,28 +253,23 @@ const fichierImport =
     "fichierImport"
   );
 
-
 // ==========================================================
 // FAMILLES
 // ==========================================================
 
 function sauvegarderFamilles() {
-
   localStorage.setItem(
     "famillesMaison",
     JSON.stringify(familles)
   );
 }
 
-
 function mettreAJourFamilles() {
-
   const valeurFormulaire =
     familleSelect.value;
 
   const valeurFiltre =
     filtreFamille.value;
-
 
   familleSelect.innerHTML = `
     <option value="">
@@ -357,13 +277,11 @@ function mettreAJourFamilles() {
     </option>
   `;
 
-
   filtreFamille.innerHTML = `
     <option value="">
       Toutes les familles
     </option>
   `;
-
 
   [...familles]
     .sort((a, b) =>
@@ -376,39 +294,32 @@ function mettreAJourFamilles() {
       )
     )
     .forEach(famille => {
+      const optionFormulaire =
+        document.createElement("option");
 
-      const option1 =
-        document.createElement(
-          "option"
-        );
-
-      option1.value =
+      optionFormulaire.value =
         famille;
 
-      option1.textContent =
+      optionFormulaire.textContent =
         famille;
 
       familleSelect.appendChild(
-        option1
+        optionFormulaire
       );
 
+      const optionFiltre =
+        document.createElement("option");
 
-      const option2 =
-        document.createElement(
-          "option"
-        );
-
-      option2.value =
+      optionFiltre.value =
         famille;
 
-      option2.textContent =
+      optionFiltre.textContent =
         famille;
 
       filtreFamille.appendChild(
-        option2
+        optionFiltre
       );
     });
-
 
   familleSelect.value =
     valeurFormulaire;
@@ -417,26 +328,24 @@ function mettreAJourFamilles() {
     valeurFiltre;
 }
 
-
 nouvelleFamille.addEventListener(
   "click",
   () => {
-
     const proposition =
       prompt(
         "Comment veux-tu appeler cette famille ?"
       );
 
-
-    if (!proposition) return;
-
+    if (!proposition) {
+      return;
+    }
 
     const nom =
       proposition.trim();
 
-
-    if (!nom) return;
-
+    if (!nom) {
+      return;
+    }
 
     const existante =
       familles.find(
@@ -445,9 +354,7 @@ nouvelleFamille.addEventListener(
           nom.toLowerCase()
       );
 
-
     if (!existante) {
-
       familles.push(nom);
 
       sauvegarderFamilles();
@@ -456,13 +363,10 @@ nouvelleFamille.addEventListener(
 
       familleSelect.value =
         nom;
-
     } else {
-
       familleSelect.value =
         existante;
     }
-
 
     afficherToast(
       "Famille ajoutée."
@@ -470,45 +374,42 @@ nouvelleFamille.addEventListener(
   }
 );
 
-
 // ==========================================================
 // MODAL
 // ==========================================================
 
 function ouvrirModal() {
-
-  overlay.classList.remove(
-    "cache"
-  );
-
-  formulaire.classList.remove(
-    "cache"
-  );
+  overlay.classList.remove("cache");
+  formulaire.classList.remove("cache");
 
   document.body.style.overflow =
     "hidden";
 }
 
-
 function fermerModal() {
-
-  overlay.classList.add(
-    "cache"
-  );
-
-  formulaire.classList.add(
-    "cache"
-  );
+  overlay.classList.add("cache");
+  formulaire.classList.add("cache");
 
   document.body.style.overflow =
     "";
 }
 
+function viderFormulaire() {
+  objetId.value = "";
+  nomInput.value = "";
+  quantiteInput.value = 1;
+  familleSelect.value = "";
+  emplacementInput.value = "";
+  favoriInput.checked = false;
+  photoInput.value = "";
+
+  photoActuelle = "";
+
+  apercuPhoto.innerHTML = "";
+}
 
 function ouvrirAjout() {
-
   viderFormulaire();
-
 
   document
     .getElementById(
@@ -517,18 +418,14 @@ function ouvrirAjout() {
     .textContent =
       "Ajouter un objet";
 
-
   enregistrer.textContent =
     "Enregistrer";
-
 
   supprimerDepuisFormulaire
     .classList
     .add("cache");
 
-
   ouvrirModal();
-
 
   setTimeout(
     () => nomInput.focus(),
@@ -536,36 +433,30 @@ function ouvrirAjout() {
   );
 }
 
-
 boutonAjouter.addEventListener(
   "click",
   ouvrirAjout
 );
-
 
 boutonFlottant.addEventListener(
   "click",
   ouvrirAjout
 );
 
-
 fermerFormulaire.addEventListener(
   "click",
   fermerModal
 );
-
 
 annuler.addEventListener(
   "click",
   fermerModal
 );
 
-
 overlay.addEventListener(
   "click",
   fermerModal
 );
-
 
 // ==========================================================
 // PHOTO
@@ -574,29 +465,25 @@ overlay.addEventListener(
 choisirPhoto.addEventListener(
   "click",
   () => {
-
     photoInput.click();
   }
 );
 
-
 photoInput.addEventListener(
   "change",
   () => {
-
     const fichier =
       photoInput.files[0];
 
-
-    if (!fichier) return;
-
+    if (!fichier) {
+      return;
+    }
 
     if (
       !fichier.type.startsWith(
         "image/"
       )
     ) {
-
       afficherToast(
         "Choisis une image."
       );
@@ -604,17 +491,13 @@ photoInput.addEventListener(
       return;
     }
 
-
     const lecteur =
       new FileReader();
 
-
     lecteur.onload =
       event => {
-
         photoActuelle =
           event.target.result;
-
 
         apercuPhoto.innerHTML = `
           <img
@@ -624,13 +507,18 @@ photoInput.addEventListener(
         `;
       };
 
+    lecteur.onerror =
+      () => {
+        afficherToast(
+          "Impossible de lire cette photo."
+        );
+      };
 
     lecteur.readAsDataURL(
       fichier
     );
   }
 );
-
 
 // ==========================================================
 // QUANTITÉ
@@ -639,44 +527,36 @@ photoInput.addEventListener(
 moinsQuantite.addEventListener(
   "click",
   () => {
-
     const valeur =
       Number(
         quantiteInput.value
       ) || 1;
 
-
     if (valeur > 1) {
-
       quantiteInput.value =
         valeur - 1;
     }
   }
 );
 
-
 plusQuantite.addEventListener(
   "click",
   () => {
-
     const valeur =
       Number(
         quantiteInput.value
       ) || 1;
-
 
     quantiteInput.value =
       valeur + 1;
   }
 );
 
-
 // ==========================================================
 // EMPLACEMENTS
 // ==========================================================
 
 function mettreAJourEmplacements() {
-
   const emplacements =
     [
       ...new Set(
@@ -689,7 +569,6 @@ function mettreAJourEmplacements() {
       )
     ];
 
-
   emplacements.sort(
     (a, b) =>
       a.localeCompare(
@@ -701,23 +580,18 @@ function mettreAJourEmplacements() {
       )
   );
 
-
   listeEmplacements.innerHTML =
     "";
 
-
   emplacements.forEach(
     emplacement => {
-
       const option =
         document.createElement(
           "option"
         );
 
-
       option.value =
         emplacement;
-
 
       listeEmplacements.appendChild(
         option
@@ -726,7 +600,6 @@ function mettreAJourEmplacements() {
   );
 }
 
-
 // ==========================================================
 // ENREGISTRER
 // ==========================================================
@@ -734,14 +607,11 @@ function mettreAJourEmplacements() {
 enregistrer.addEventListener(
   "click",
   async () => {
-
     const nom =
       nomInput.value.trim();
 
-
     const emplacement =
       emplacementInput.value.trim();
-
 
     const quantite =
       Math.max(
@@ -751,14 +621,11 @@ enregistrer.addEventListener(
         ) || 1
       );
 
-
     const famille =
       familleSelect.value ||
       "Sans famille";
 
-
     if (!nom) {
-
       afficherToast(
         "Donne un nom à l'objet."
       );
@@ -768,9 +635,7 @@ enregistrer.addEventListener(
       return;
     }
 
-
     if (!emplacement) {
-
       afficherToast(
         "Indique où l'objet est rangé."
       );
@@ -780,26 +645,38 @@ enregistrer.addEventListener(
       return;
     }
 
-
-    const id =
-      Number(
-        objetId.value
+    if (!db) {
+      afficherToast(
+        "La base de données n'est pas prête."
       );
 
+      return;
+    }
 
-    if (id) {
+    enregistrer.disabled =
+      true;
 
-      const index =
-        objets.findIndex(
-          objet =>
-            objet.id === id
+    const texteInitial =
+      enregistrer.textContent;
+
+    enregistrer.textContent =
+      "Enregistrement...";
+
+    try {
+      const id =
+        Number(
+          objetId.value
         );
 
+      if (id) {
+        const index =
+          objets.findIndex(
+            objet =>
+              objet.id === id
+          );
 
-      if (index !== -1) {
-
-        const objetModifie =
-          {
+        if (index !== -1) {
+          const objetModifie = {
             ...objets[index],
 
             nom,
@@ -818,25 +695,19 @@ enregistrer.addEventListener(
                 .toISOString()
           };
 
+          await enregistrerObjetDB(
+            objetModifie
+          );
 
-        await enregistrerObjetDB(
-          objetModifie
+          objets[index] =
+            objetModifie;
+        }
+
+        afficherToast(
+          "Objet modifié."
         );
-
-
-        objets[index] =
-          objetModifie;
-      }
-
-
-      afficherToast(
-        "Objet modifié."
-      );
-
-    } else {
-
-      const nouvelObjet =
-        {
+      } else {
+        const nouvelObjet = {
           id:
             Date.now(),
 
@@ -860,65 +731,74 @@ enregistrer.addEventListener(
               .toISOString()
         };
 
+        await enregistrerObjetDB(
+          nouvelObjet
+        );
 
-      await enregistrerObjetDB(
-        nouvelObjet
+        objets.unshift(
+          nouvelObjet
+        );
+
+        afficherToast(
+          "Objet ajouté."
+        );
+      }
+
+      if (
+        famille !==
+          "Sans famille" &&
+        !familles.includes(
+          famille
+        )
+      ) {
+        familles.push(
+          famille
+        );
+
+        sauvegarderFamilles();
+      }
+
+      mettreAJourFamilles();
+
+      mettreAJourEmplacements();
+
+      fermerModal();
+
+      afficherObjets();
+
+    } catch (erreur) {
+      console.error(
+        "Erreur d'enregistrement :",
+        erreur
       );
-
-
-      objets.unshift(
-        nouvelObjet
-      );
-
 
       afficherToast(
-        "Objet ajouté."
+        "Impossible d'enregistrer l'objet."
       );
+    } finally {
+      enregistrer.disabled =
+        false;
+
+      enregistrer.textContent =
+        texteInitial;
     }
-
-
-    if (
-      famille !==
-        "Sans famille" &&
-      !familles.includes(
-        famille
-      )
-    ) {
-
-      familles.push(
-        famille
-      );
-
-      sauvegarderFamilles();
-    }
-
-
-    mettreAJourFamilles();
-
-    mettreAJourEmplacements();
-
-    fermerModal();
-
-    afficherObjets();
   }
 );
-
 
 // ==========================================================
 // MODIFIER
 // ==========================================================
 
 function modifierObjet(id) {
-
   const objet =
     objets.find(
       element =>
         element.id === id
     );
 
-
-  if (!objet) return;
-
+  if (!objet) {
+    return;
+  }
 
   objetId.value =
     objet.id;
@@ -940,26 +820,20 @@ function modifierObjet(id) {
       objet.favori
     );
 
-
   photoActuelle =
     objet.photo || "";
 
-
   if (photoActuelle) {
-
     apercuPhoto.innerHTML = `
       <img
         src="${photoActuelle}"
         alt="Photo de l'objet"
       >
     `;
-
   } else {
-
     apercuPhoto.innerHTML =
       "";
   }
-
 
   document
     .getElementById(
@@ -968,50 +842,15 @@ function modifierObjet(id) {
     .textContent =
       "Modifier l'objet";
 
-
   enregistrer.textContent =
     "Enregistrer les modifications";
-
 
   supprimerDepuisFormulaire
     .classList
     .remove("cache");
 
-
   ouvrirModal();
 }
-
-
-function viderFormulaire() {
-
-  objetId.value =
-    "";
-
-  nomInput.value =
-    "";
-
-  quantiteInput.value =
-    1;
-
-  familleSelect.value =
-    "";
-
-  emplacementInput.value =
-    "";
-
-  favoriInput.checked =
-    false;
-
-  photoInput.value =
-    "";
-
-  photoActuelle =
-    "";
-
-  apercuPhoto.innerHTML =
-    "";
-}
-
 
 // ==========================================================
 // SUPPRESSION
@@ -1021,15 +860,12 @@ supprimerDepuisFormulaire
   .addEventListener(
     "click",
     async () => {
-
       const id =
         Number(
           objetId.value
         );
 
-
       if (id) {
-
         await supprimerObjet(
           id
         );
@@ -1037,52 +873,57 @@ supprimerDepuisFormulaire
     }
   );
 
-
 async function supprimerObjet(id) {
-
   const objet =
     objets.find(
       element =>
         element.id === id
     );
 
-
-  if (!objet) return;
-
+  if (!objet) {
+    return;
+  }
 
   const confirmation =
     confirm(
       `Supprimer définitivement "${objet.nom}" ?`
     );
 
+  if (!confirmation) {
+    return;
+  }
 
-  if (!confirmation) return;
-
-
-  await supprimerObjetDB(
-    id
-  );
-
-
-  objets =
-    objets.filter(
-      element =>
-        element.id !== id
+  try {
+    await supprimerObjetDB(
+      id
     );
 
+    objets =
+      objets.filter(
+        element =>
+          element.id !== id
+      );
 
-  mettreAJourEmplacements();
+    mettreAJourEmplacements();
 
-  afficherObjets();
+    afficherObjets();
 
-  fermerModal();
+    fermerModal();
 
+    afficherToast(
+      "Objet supprimé."
+    );
 
-  afficherToast(
-    "Objet supprimé."
-  );
+  } catch (erreur) {
+    console.error(
+      erreur
+    );
+
+    afficherToast(
+      "Impossible de supprimer cet objet."
+    );
+  }
 }
-
 
 // ==========================================================
 // QUANTITÉS RAPIDES
@@ -1092,16 +933,15 @@ async function changerQuantite(
   id,
   changement
 ) {
-
   const objet =
     objets.find(
       element =>
         element.id === id
     );
 
-
-  if (!objet) return;
-
+  if (!objet) {
+    return;
+  }
 
   const nouvelleQuantite =
     Number(
@@ -1109,88 +949,96 @@ async function changerQuantite(
     ) +
     changement;
 
+  try {
+    if (
+      nouvelleQuantite <= 0
+    ) {
+      const confirmation =
+        confirm(
+          `"${objet.nom}" arrive à 0.\n\nLe retirer de l'inventaire ?`
+        );
 
-  if (
-    nouvelleQuantite <= 0
-  ) {
+      if (!confirmation) {
+        return;
+      }
 
-    const confirmation =
-      confirm(
-        `"${objet.nom}" arrive à 0.\n\nLe retirer de l'inventaire ?`
+      await supprimerObjetDB(
+        id
       );
 
+      objets =
+        objets.filter(
+          element =>
+            element.id !== id
+        );
 
-    if (!confirmation) return;
+    } else {
+      objet.quantite =
+        nouvelleQuantite;
 
+      objet.dateModification =
+        new Date()
+          .toISOString();
 
-    await supprimerObjetDB(
-      id
+      await enregistrerObjetDB(
+        objet
+      );
+    }
+
+    mettreAJourEmplacements();
+
+    afficherObjets();
+
+  } catch (erreur) {
+    console.error(
+      erreur
     );
 
-
-    objets =
-      objets.filter(
-        element =>
-          element.id !== id
-      );
-
-
-  } else {
-
-    objet.quantite =
-      nouvelleQuantite;
-
-
-    objet.dateModification =
-      new Date()
-        .toISOString();
-
-
-    await enregistrerObjetDB(
-      objet
+    afficherToast(
+      "Impossible de modifier la quantité."
     );
   }
-
-
-  mettreAJourEmplacements();
-
-  afficherObjets();
 }
-
 
 // ==========================================================
 // FAVORIS
 // ==========================================================
 
 async function basculerFavori(id) {
-
   const objet =
     objets.find(
       element =>
         element.id === id
     );
 
-
-  if (!objet) return;
-
+  if (!objet) {
+    return;
+  }
 
   objet.favori =
     !objet.favori;
-
 
   objet.dateModification =
     new Date()
       .toISOString();
 
+  try {
+    await enregistrerObjetDB(
+      objet
+    );
 
-  await enregistrerObjetDB(
-    objet
-  );
+    afficherObjets();
 
+  } catch (erreur) {
+    console.error(
+      erreur
+    );
 
-  afficherObjets();
+    afficherToast(
+      "Impossible de modifier le favori."
+    );
+  }
 }
-
 
 // ==========================================================
 // RECHERCHE
@@ -1199,7 +1047,6 @@ async function basculerFavori(id) {
 rechercheInput.addEventListener(
   "input",
   () => {
-
     effacerRecherche
       .classList
       .toggle(
@@ -1209,38 +1056,30 @@ rechercheInput.addEventListener(
           .length === 0
       );
 
-
     afficherObjets();
   }
 );
 
-
 effacerRecherche.addEventListener(
   "click",
   () => {
-
     rechercheInput.value =
       "";
-
 
     effacerRecherche
       .classList
       .add("cache");
 
-
     rechercheInput.focus();
-
 
     afficherObjets();
   }
 );
 
-
 filtreFamille.addEventListener(
   "change",
   afficherObjets
 );
-
 
 // ==========================================================
 // VUES
@@ -1248,11 +1087,9 @@ filtreFamille.addEventListener(
 
 raccourcis.forEach(
   bouton => {
-
     bouton.addEventListener(
       "click",
       () => {
-
         raccourcis.forEach(
           element =>
             element
@@ -1262,15 +1099,12 @@ raccourcis.forEach(
               )
         );
 
-
         bouton
           .classList
           .add("actif");
 
-
         vueActuelle =
           bouton.dataset.vue;
-
 
         afficherObjets();
       }
@@ -1278,27 +1112,22 @@ raccourcis.forEach(
   }
 );
 
-
 // ==========================================================
 // AFFICHAGE
 // ==========================================================
 
 function afficherObjets() {
-
   const recherche =
     normaliserTexte(
       rechercheInput.value
     );
 
-
   const familleFiltre =
     filtreFamille.value;
-
 
   let resultats =
     objets.filter(
       objet => {
-
         const contenu =
           normaliserTexte(
             [
@@ -1308,45 +1137,37 @@ function afficherObjets() {
             ].join(" ")
           );
 
-
         const rechercheOK =
           contenu.includes(
             recherche
           );
-
 
         const familleOK =
           !familleFiltre ||
           objet.famille ===
             familleFiltre;
 
-
         let vueOK =
           true;
-
 
         if (
           vueActuelle ===
           "favoris"
         ) {
-
           vueOK =
             Boolean(
               objet.favori
             );
         }
 
-
         if (
           vueActuelle ===
           "recents"
         ) {
-
           const dateObjet =
             new Date(
               objet.dateAjout
             ).getTime();
-
 
           const septJours =
             7 *
@@ -1355,13 +1176,11 @@ function afficherObjets() {
             60 *
             1000;
 
-
           vueOK =
             Date.now() -
             dateObjet <=
             septJours;
         }
-
 
         return (
           rechercheOK &&
@@ -1371,17 +1190,14 @@ function afficherObjets() {
       }
     );
 
-
   resultats.sort(
     (a, b) => {
-
       const dateA =
         new Date(
           a.dateModification ||
           a.dateAjout ||
           0
         ).getTime();
-
 
       const dateB =
         new Date(
@@ -1390,7 +1206,6 @@ function afficherObjets() {
           0
         ).getTime();
 
-
       return (
         dateB -
         dateA
@@ -1398,18 +1213,14 @@ function afficherObjets() {
     }
   );
 
-
   listeObjets.innerHTML =
     "";
-
 
   if (
     resultats.length === 0
   ) {
-
     const vide =
       objets.length === 0;
-
 
     listeObjets.innerHTML = `
       <div class="vide">
@@ -1436,21 +1247,16 @@ function afficherObjets() {
 
       </div>
     `;
-
   } else {
-
     resultats.forEach(
       objet => {
-
         const carte =
           document.createElement(
             "article"
           );
 
-
         carte.className =
           "objet";
-
 
         const image =
           objet.photo
@@ -1469,7 +1275,6 @@ function afficherObjets() {
                 ⌂
               </div>
             `;
-
 
         carte.innerHTML = `
 
@@ -1497,13 +1302,11 @@ function afficherObjets() {
 
             </div>
 
-
             <h3>
               ${echapperHTML(
                 objet.nom
               )}
             </h3>
-
 
             <p class="emplacement-objet">
               📍
@@ -1511,7 +1314,6 @@ function afficherObjets() {
                 objet.emplacement
               )}
             </p>
-
 
             <div class="bas-carte">
 
@@ -1537,7 +1339,6 @@ function afficherObjets() {
 
               </div>
 
-
               <button
                 type="button"
                 class="modifier"
@@ -1549,7 +1350,6 @@ function afficherObjets() {
             </div>
 
           </div>
-
 
           <button
             type="button"
@@ -1568,7 +1368,6 @@ function afficherObjets() {
           </button>
         `;
 
-
         listeObjets.appendChild(
           carte
         );
@@ -1576,11 +1375,9 @@ function afficherObjets() {
     );
   }
 
-
   if (
     rechercheInput.value.trim()
   ) {
-
     resultatTexte.textContent =
       `${resultats.length} résultat${
         resultats.length > 1
@@ -1592,7 +1389,6 @@ function afficherObjets() {
     vueActuelle ===
     "favoris"
   ) {
-
     resultatTexte.textContent =
       "Mes objets favoris";
 
@@ -1600,27 +1396,22 @@ function afficherObjets() {
     vueActuelle ===
     "recents"
   ) {
-
     resultatTexte.textContent =
       "Ajoutés ces 7 derniers jours";
 
   } else {
-
     resultatTexte.textContent =
       "Tous les objets";
   }
 
-
   mettreAJourStatistiques();
 }
-
 
 // ==========================================================
 // STATISTIQUES
 // ==========================================================
 
 function mettreAJourStatistiques() {
-
   const quantiteTotale =
     objets.reduce(
       (
@@ -1634,7 +1425,6 @@ function mettreAJourStatistiques() {
       0
     );
 
-
   const famillesUtilisees =
     new Set(
       objets.map(
@@ -1642,7 +1432,6 @@ function mettreAJourStatistiques() {
           objet.famille
       )
     );
-
 
   const emplacements =
     new Set(
@@ -1654,45 +1443,36 @@ function mettreAJourStatistiques() {
         .filter(Boolean)
     );
 
-
   const favoris =
     objets.filter(
       objet =>
         objet.favori
     );
 
-
   nombreObjets.textContent =
     quantiteTotale;
-
 
   statReferences.textContent =
     objets.length;
 
-
   statFamilles.textContent =
     famillesUtilisees.size;
 
-
   statEmplacements.textContent =
     emplacements.size;
-
 
   statFavoris.textContent =
     favoris.length;
 }
 
-
 // ==========================================================
 // EXPORTER
 // ==========================================================
 
-exporterInventaire.addEventListener(
+exporterInventaire?.addEventListener(
   "click",
   () => {
-
     const sauvegarde = {
-
       application:
         "Quelque part dans cette maison",
 
@@ -1708,14 +1488,12 @@ exporterInventaire.addEventListener(
       objets
     };
 
-
     const contenu =
       JSON.stringify(
         sauvegarde,
         null,
         2
       );
-
 
     const fichier =
       new Blob(
@@ -1726,48 +1504,38 @@ exporterInventaire.addEventListener(
         }
       );
 
-
     const url =
       URL.createObjectURL(
         fichier
       );
-
 
     const lien =
       document.createElement(
         "a"
       );
 
-
     const date =
       new Date()
         .toISOString()
         .slice(0, 10);
 
-
     lien.href =
       url;
 
-
     lien.download =
       `inventaire-maison-${date}.json`;
-
 
     document.body.appendChild(
       lien
     );
 
-
     lien.click();
 
-
     lien.remove();
-
 
     URL.revokeObjectURL(
       url
     );
-
 
     afficherToast(
       "Sauvegarde créée."
@@ -1775,44 +1543,35 @@ exporterInventaire.addEventListener(
   }
 );
 
-
 // ==========================================================
 // IMPORTER / RESTAURER
 // ==========================================================
 
-importerInventaire.addEventListener(
+importerInventaire?.addEventListener(
   "click",
   () => {
-
-    fichierImport.click();
+    fichierImport?.click();
   }
 );
 
-
-fichierImport.addEventListener(
+fichierImport?.addEventListener(
   "change",
   async () => {
-
     const fichier =
       fichierImport.files[0];
-
 
     if (!fichier) {
       return;
     }
 
-
     try {
-
       const texte =
         await fichier.text();
-
 
       const sauvegarde =
         JSON.parse(
           texte
         );
-
 
       if (
         !sauvegarde ||
@@ -1820,57 +1579,45 @@ fichierImport.addEventListener(
           sauvegarde.objets
         )
       ) {
-
         throw new Error(
           "Format incorrect"
         );
       }
-
 
       const confirmation =
         confirm(
           `Cette sauvegarde contient ${sauvegarde.objets.length} référence(s).\n\nRestaurer cette sauvegarde remplacera l'inventaire actuel.\n\nContinuer ?`
         );
 
-
       if (!confirmation) {
-
         fichierImport.value =
           "";
 
         return;
       }
 
-
       await viderBaseObjets();
-
 
       objets =
         sauvegarde.objets;
-
 
       for (
         const objet
         of objets
       ) {
-
         await enregistrerObjetDB(
           objet
         );
       }
-
 
       if (
         Array.isArray(
           sauvegarde.familles
         )
       ) {
-
         familles =
           sauvegarde.familles;
-
       } else {
-
         familles =
           [
             ...new Set(
@@ -1884,9 +1631,7 @@ fichierImport.addEventListener(
           ];
       }
 
-
       sauvegarderFamilles();
-
 
       mettreAJourFamilles();
 
@@ -1894,30 +1639,24 @@ fichierImport.addEventListener(
 
       afficherObjets();
 
-
       afficherToast(
         "Inventaire restauré."
       );
 
-
     } catch (erreur) {
-
       console.error(
         erreur
       );
-
 
       alert(
         "Ce fichier ne semble pas être une sauvegarde valide de l'application."
       );
     }
 
-
     fichierImport.value =
       "";
   }
 );
-
 
 // ==========================================================
 // UTILITAIRES
@@ -1925,43 +1664,34 @@ fichierImport.addEventListener(
 
 let minuterieToast;
 
-
 function afficherToast(
   message
 ) {
-
   clearTimeout(
     minuterieToast
   );
 
-
   toast.textContent =
     message;
-
 
   toast.classList.remove(
     "cache"
   );
 
-
   minuterieToast =
     setTimeout(
       () => {
-
         toast.classList.add(
           "cache"
         );
-
       },
       2200
     );
 }
 
-
 function normaliserTexte(
   texte = ""
 ) {
-
   return String(
     texte
   )
@@ -1974,54 +1704,42 @@ function normaliserTexte(
     .trim();
 }
 
-
 function echapperHTML(
   texte = ""
 ) {
-
   const div =
     document.createElement(
       "div"
     );
 
-
   div.textContent =
     texte;
-
 
   return div.innerHTML;
 }
 
-
 document.addEventListener(
   "keydown",
   event => {
-
     if (
       event.key ===
       "Escape"
     ) {
-
       fermerModal();
     }
   }
 );
-
 
 // ==========================================================
 // DÉMARRAGE
 // ==========================================================
 
 async function demarrerApplication() {
-
   try {
-
     await ouvrirBaseDeDonnees();
-
 
     objets =
       await recupererTousLesObjetsDB();
-
 
     mettreAJourFamilles();
 
@@ -2029,12 +1747,10 @@ async function demarrerApplication() {
 
     afficherObjets();
 
-
     if (
       navigator.storage &&
       navigator.storage.persist
     ) {
-
       navigator.storage
         .persist()
         .catch(
@@ -2042,13 +1758,11 @@ async function demarrerApplication() {
         );
     }
 
-
   } catch (erreur) {
-
     console.error(
+      "Erreur de démarrage :",
       erreur
     );
-
 
     afficherToast(
       "Impossible d'ouvrir la base de données."
@@ -2056,36 +1770,35 @@ async function demarrerApplication() {
   }
 }
 
-
 demarrerApplication();
+
 // ==========================================================
 // PWA - SERVICE WORKER
 // ==========================================================
 
-if ("serviceWorker" in navigator) {
-
+if (
+  "serviceWorker" in navigator
+) {
   window.addEventListener(
     "load",
     async () => {
-
       try {
-
-        await navigator.serviceWorker.register(
-          "./sw.js"
-        );
+        await navigator
+          .serviceWorker
+          .register(
+            "./sw.js"
+          );
 
         console.log(
           "Application prête pour le mode PWA."
         );
 
       } catch (erreur) {
-
         console.error(
           "Service Worker non enregistré :",
           erreur
         );
       }
-
     }
   );
 }
