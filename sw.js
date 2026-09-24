@@ -1,5 +1,5 @@
 const CACHE_NAME =
-  "quelque-part-maison-v1";
+  "quelque-part-maison-v2";
 
 const FICHIERS = [
   "./",
