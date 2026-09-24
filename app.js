@@ -2058,3 +2058,34 @@ async function demarrerApplication() {
 
 
 demarrerApplication();
+// ==========================================================
+// PWA - SERVICE WORKER
+// ==========================================================
+
+if ("serviceWorker" in navigator) {
+
+  window.addEventListener(
+    "load",
+    async () => {
+
+      try {
+
+        await navigator.serviceWorker.register(
+          "./sw.js"
+        );
+
+        console.log(
+          "Application prête pour le mode PWA."
+        );
+
+      } catch (erreur) {
+
+        console.error(
+          "Service Worker non enregistré :",
+          erreur
+        );
+      }
+
+    }
+  );
+}
