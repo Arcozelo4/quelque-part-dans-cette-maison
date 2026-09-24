@@ -1,5 +1,5 @@
 const CACHE_NAME =
-  "quelque-part-maison-v2";
+  "quelque-part-maison-v3";
 
 const FICHIERS = [
   "./",
@@ -7,7 +7,9 @@ const FICHIERS = [
   "./style.css",
   "./app.js",
   "./manifest.json",
-  "./icon.svg"
+  "./icon.svg",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
 self.addEventListener(
