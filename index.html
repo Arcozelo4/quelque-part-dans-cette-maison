@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#355747"
+  >
+
+  <title>Quelque part dans cette maison</title>
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+</head>
+
+
+<body>
+
+  <!-- =========================
+       EN-TÊTE
+  ========================== -->
+
+  <header class="header">
+
+    <div>
+      <p class="eyebrow">
+        MON INVENTAIRE
+      </p>
+
+      <h1>
+        Quelque part
+        <br>
+        <span>dans cette maison</span>
+      </h1>
+
+      <p class="slogan">
+        Retrouver ce que j'ai. Savoir où c'est.
+      </p>
+    </div>
+
+
+    <div class="compteur-global">
+
+      <strong id="nombreObjets">
+        0
+      </strong>
+
+      <span>
+        objets
+      </span>
+
+    </div>
+
+  </header>
+
+
+  <main>
+
+    <!-- =========================
+         RECHERCHE
+    ========================== -->
+
+    <section class="bloc-recherche">
+
+      <label
+        for="recherche"
+        class="sr-only"
+      >
+        Rechercher dans mon inventaire
+      </label>
+
+
+      <div class="champ-recherche">
+
+        <span class="icone-recherche">
+          ⌕
+        </span>
+
+
+        <input
+          type="search"
+          id="recherche"
+          placeholder="Qu'est-ce que je cherche ?"
+          autocomplete="off"
+        >
+
+
+        <button
+          id="effacerRecherche"
+          class="effacer-recherche cache"
+          aria-label="Effacer la recherche"
+        >
+          ×
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         AJOUT
+    ========================== -->
+
+    <section class="actions">
+
+      <button
+        id="boutonAjouter"
+        class="action-principale"
+      >
+
+        <span class="icone-action">
+          ＋
+        </span>
+
+        <span>
+          <strong>
+            Ajouter un objet
+          </strong>
+
+          <small>
+            Photo, quantité, famille et emplacement
+          </small>
+        </span>
+
+      </button>
+
+    </section>
+
+
+    <!-- =========================
+         STATISTIQUES
+    ========================== -->
+
+    <section class="statistiques">
+
+      <div class="stat">
+        <strong id="statReferences">
+          0
+        </strong>
+
+        <span>
+          références
+        </span>
+      </div>
+
+
+      <div class="stat">
+        <strong id="statFamilles">
+          0
+        </strong>
+
+        <span>
+          familles
+        </span>
+      </div>
+
+
+      <div class="stat">
+        <strong id="statEmplacements">
+          0
+        </strong>
+
+        <span>
+          emplacements
+        </span>
+      </div>
+
+
+      <div class="stat">
+        <strong id="statFavoris">
+          0
+        </strong>
+
+        <span>
+          favoris
+        </span>
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         EXPLORER
+    ========================== -->
+
+    <section class="section">
+
+      <div class="titre-section">
+        <h2>
+          Explorer
+        </h2>
+      </div>
+
+
+      <div class="raccourcis">
+
+        <button
+          class="raccourci actif"
+          data-vue="tous"
+        >
+          <span>⌂</span>
+          Tout
+        </button>
+
+
+        <button
+          class="raccourci"
+          data-vue="favoris"
+        >
+          <span>♡</span>
+          Favoris
+        </button>
+
+
+        <button
+          class="raccourci"
+          data-vue="recents"
+        >
+          <span>◷</span>
+          Récents
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         INVENTAIRE
+    ========================== -->
+
+    <section class="section">
+
+      <div class="titre-section titre-inventaire">
+
+        <div>
+
+          <h2>
+            Mes objets
+          </h2>
+
+          <p id="resultatTexte">
+            Tous les objets
+          </p>
+
+        </div>
+
+
+        <select
+          id="filtreFamille"
+          aria-label="Filtrer par famille"
+        >
+
+          <option value="">
+            Toutes les familles
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <div
+        id="listeObjets"
+        class="liste-objets"
+      >
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       BOUTON FLOTTANT MOBILE
+  ========================== -->
+
+  <button
+    id="boutonFlottant"
+    class="bouton-flottant"
+    aria-label="Ajouter un objet"
+  >
+    +
+  </button>
+
+
+  <!-- =========================
+       FOND MODAL
+  ========================== -->
+
+  <div
+    id="overlay"
+    class="overlay cache"
+  >
+  </div>
+
+
+  <!-- =========================
+       FORMULAIRE
+  ========================== -->
+
+  <section
+    id="formulaire"
+    class="modal cache"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="titreFormulaire"
+  >
+
+    <div class="poignee">
+    </div>
+
+
+    <div class="modal-entete">
+
+      <div>
+
+        <p class="eyebrow sombre">
+          INVENTAIRE
+        </p>
+
+        <h2 id="titreFormulaire">
+          Ajouter un objet
+        </h2>
+
+      </div>
+
+
+      <button
+        id="fermerFormulaire"
+        class="bouton-fermer"
+        aria-label="Fermer"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <input
+      type="hidden"
+      id="objetId"
+    >
+
+
+    <!-- PHOTO -->
+
+    <div class="zone-photo">
+
+      <input
+        type="file"
+        id="photo"
+        accept="image/*"
+        capture="environment"
+        hidden
+      >
+
+
+      <button
+        type="button"
+        id="choisirPhoto"
+        class="choisir-photo"
+      >
+
+        <span class="icone-photo">
+          📷
+        </span>
+
+        <span>
+
+          <strong>
+            Ajouter une photo
+          </strong>
+
+          <small>
+            Prendre une photo ou choisir une image
+          </small>
+
+        </span>
+
+      </button>
+
+
+      <div
+        id="apercuPhoto"
+        class="apercu-photo"
+      >
+      </div>
+
+    </div>
+
+
+    <!-- NOM -->
+
+    <div class="champ">
+
+      <label for="nom">
+        Nom de l'objet *
+      </label>
+
+      <input
+        type="text"
+        id="nom"
+        placeholder="Ex. Piles AAA"
+        autocomplete="off"
+      >
+
+    </div>
+
+
+    <!-- QUANTITÉ -->
+
+    <div class="champ">
+
+      <label>
+        Quantité
+      </label>
+
+
+      <div class="selecteur-quantite">
+
+        <button
+          type="button"
+          id="moinsQuantite"
+          aria-label="Diminuer la quantité"
+        >
+          −
+        </button>
+
+
+        <input
+          type="number"
+          id="quantite"
+          min="1"
+          value="1"
+          aria-label="Quantité"
+        >
+
+
+        <button
+          type="button"
+          id="plusQuantite"
+          aria-label="Augmenter la quantité"
+        >
+          +
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- FAMILLE -->
+
+    <div class="champ">
+
+      <label for="famille">
+        Famille
+      </label>
+
+
+      <div class="ligne">
+
+        <select id="famille">
+
+          <option value="">
+            Choisir une famille
+          </option>
+
+        </select>
+
+
+        <button
+          type="button"
+          id="nouvelleFamille"
+          class="petit-bouton"
+        >
+          + Nouvelle
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- EMPLACEMENT -->
+
+    <div class="champ">
+
+      <label for="emplacement">
+        Où est-il rangé ? *
+      </label>
+
+
+      <input
+        type="text"
+        id="emplacement"
+        list="listeEmplacements"
+        placeholder="Ex. Cave → Armoire → Bac 2"
+        autocomplete="off"
+      >
+
+
+      <datalist id="listeEmplacements">
+      </datalist>
+
+
+      <small class="aide">
+        Les emplacements déjà utilisés sont proposés automatiquement.
+      </small>
+
+    </div>
+
+
+    <!-- FAVORI -->
+
+    <label class="option-favori">
+
+      <input
+        type="checkbox"
+        id="favori"
+      >
+
+
+      <span class="coeur">
+        ♡
+      </span>
+
+
+      <span>
+
+        <strong>
+          Ajouter aux favoris
+        </strong>
+
+        <small>
+          Pour retrouver cet objet plus rapidement
+        </small>
+
+      </span>
+
+    </label>
+
+
+    <!-- SUPPRESSION -->
+
+    <button
+      type="button"
+      id="supprimerDepuisFormulaire"
+      class="bouton-supprimer cache"
+    >
+      Supprimer cet objet
+    </button>
+
+
+    <!-- ACTIONS -->
+
+    <div class="actions-formulaire">
+
+      <button
+        type="button"
+        id="annuler"
+        class="bouton-annuler"
+      >
+        Annuler
+      </button>
+
+
+      <button
+        type="button"
+        id="enregistrer"
+        class="bouton-enregistrer"
+      >
+        Enregistrer
+      </button>
+
+    </div>
+
+  </section>
+
+
+  <!-- =========================
+       NOTIFICATION
+  ========================== -->
+
+  <div
+    id="toast"
+    class="toast cache"
+    role="status"
+    aria-live="polite"
+  >
+  </div>
+
+
+  <script src="app.js"></script>
+
+</body>
+
+</html>
